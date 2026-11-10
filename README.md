@@ -8,7 +8,7 @@ A web map for screening land parcels near grid infrastructure. It shows 31,740 r
 
 It is a static site with no server and no API keys. Everything runs in the browser from one 9.7 MB PMTiles file and a few JSON files.
 
-Portfolio demo on public data. Owner names and addresses are left out on purpose.
+All data is public. Owner names and addresses are left out on purpose.
 
 ## How it is built
 
