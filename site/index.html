@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parcel Finder · Iowa County, WI</title>
+  <meta name="description" content="Land parcel screening map on public data: 31,740 parcels with distance to transmission lines, substations and flood zones. Portfolio demo.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect x=%222%22 y=%222%22 width=%2228%22 height=%2228%22 rx=%226%22 fill=%22%231f6feb%22/%3E%3Cpath d=%22M8 9h9v7H8zM19 9h5v13h-5zM8 18h9v5H8z%22 fill=%22%23fff%22/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Parcel Finder <span>Iowa County, Wisconsin</span></h1>
+      <p>Portfolio demo on public data</p>
+    </div>
+    <div class="top-actions">
+      <label class="btn ghost" title="Show a KML or KMZ file on the map">
+        Open KML/KMZ<input id="kml-input" type="file" accept=".kml,.kmz" hidden>
+      </label>
+      <button class="btn ghost" id="about-open">About &amp; method</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel" id="panel">
+      <section>
+        <h2>Basemap</h2>
+        <div class="seg" role="group" aria-label="Basemap">
+          <button class="on" data-base="imagery">Satellite</button>
+          <button data-base="topo">Topo</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Layers</h2>
+        <label class="chk"><input type="checkbox" data-layer="parcels" checked> Parcels</label>
+        <label class="chk"><input type="checkbox" data-layer="lines" checked> <i class="sw line"></i>Transmission lines</label>
+        <label class="chk"><input type="checkbox" data-layer="substations" checked> <i class="sw dot"></i>Substations</label>
+        <label class="chk"><input type="checkbox" data-layer="solar" checked> <i class="sw solar"></i>Solar plants</label>
+        <label class="chk"><input type="checkbox" data-layer="flood"> <i class="sw flood"></i>Flood zones (1% annual)</label>
+      </section>
+
+      <section>
+        <div class="row-head">
+          <h2>Filters</h2>
+          <button class="link" id="preset-solar" title="Agricultural, 40+ acres, within 1 mile of a line, 5 miles of a substation, under 10% flood zone">Solar screening preset</button>
+        </div>
+        <div class="cats" id="cats"></div>
+        <div class="grid2">
+          <label>Min acres<input type="number" id="f-amin" min="0" step="1" placeholder="any"></label>
+          <label>Max acres<input type="number" id="f-amax" min="0" step="1" placeholder="any"></label>
+          <label>Line within, mi<input type="number" id="f-line" min="0" step="0.25" placeholder="any"></label>
+          <label>Substation within, mi<input type="number" id="f-sub" min="0" step="0.5" placeholder="any"></label>
+          <label class="span2">Max share in flood zone, %<input type="number" id="f-flood" min="0" max="100" step="5" placeholder="any"></label>
+        </div>
+        <div class="draw-row">
+          <button class="btn" id="draw-btn">Draw area</button>
+          <button class="btn ghost" id="draw-clear" hidden>Clear area</button>
+          <button class="link" id="reset">Reset all</button>
+        </div>
+        <p class="hint" id="draw-hint" hidden>Click to add points. Click the first point or double-click to finish. A parcel is selected when its centre point is inside the area.</p>
+      </section>
+
+      <section class="results">
+        <div class="count"><strong id="r-count">–</strong> parcels · <span id="r-acres">–</span> acres</div>
+        <div class="export">
+          <span>Export</span>
+          <button class="btn small" data-export="kml">KML</button>
+          <button class="btn small" data-export="kmz">KMZ</button>
+          <button class="btn small" data-export="geojson">GeoJSON</button>
+          <button class="btn small" data-export="csv">CSV</button>
+        </div>
+        <p class="hint" id="export-status"></p>
+        <ol class="list" id="r-list"></ol>
+      </section>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="legend" id="legend"></div>
+      <div class="imported" id="imported" hidden></div>
+      <article class="card" id="card" hidden>
+        <button class="close" id="card-close" aria-label="Close">×</button>
+        <div id="card-body"></div>
+      </article>
+    </div>
+  </main>
+
+  <dialog id="about">
+    <form method="dialog"><button class="close" aria-label="Close">×</button></form>
+    <h2>About this map</h2>
+    <p>A screening tool for finding land parcels near grid infrastructure, built as a portfolio demo. All data is public. Owner names and addresses are left out on purpose.</p>
+    <h3>How the numbers are computed</h3>
+    <p>Parcels, power lines, substations and flood zones were loaded into PostGIS and projected to NAD83 / Wisconsin Transverse Mercator (EPSG:3070), which works in metres. Acres come from the polygon area. Distance to the nearest transmission line and substation uses a spatial index nearest-neighbour search. Flood share is the area of the parcel inside the 1% annual chance flood zone divided by the parcel area.</p>
+    <h3>Accuracy check</h3>
+    <p>Computed acres match the state's own GIS acres with a median difference of 0.000% (99% of parcels within 0.02%). Distances in the projection differ from ellipsoid distances by 0.04% on average. The same distances computed directly in latitude/longitude degrees would be off by 2.7% on average and by up to 36.8% for east–west distances, because a degree of longitude here is about 27% shorter than a degree of latitude.</p>
+    <h3>Sources</h3>
+    <ul>
+      <li>Parcels: Wisconsin Statewide Parcel Map V12 (State Cartographer's Office and Wisconsin Land Information Program), collected January–May 2026, tax roll 2025.</li>
+      <li>Transmission lines, substations, solar plants: © OpenStreetMap contributors, ODbL.</li>
+      <li>Flood zones: FEMA National Flood Hazard Layer, as published by the Wisconsin Department of Health Services.</li>
+      <li>Basemaps: USGS The National Map.</li>
+    </ul>
+    <p class="hint">Parcel lines are for screening only and do not represent legal ownership boundaries. No warranty is made about the accuracy of the source data.</p>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pmtiles@3.2.1/dist/pmtiles.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tmcw/togeojson@5.8.1/dist/togeojson.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
